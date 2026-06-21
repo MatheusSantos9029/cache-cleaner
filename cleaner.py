@@ -37,9 +37,15 @@ def iniciar_limpeza():
     barra["value"] = 0
 
     def executar():
+
+        localappdata = os.environ.get("LOCALAPPDATA") or os.path.expandvars("%LOCALAPPDATA%")
+        
         pastas = [
             os.environ.get("TEMP"),
-            r"C:\Windows\Temp"
+            r"C:\Windows\Temp",
+            os.path.join(os.environ.get("LOCALAPPDATA"), r"Google\Chrome\User Data\Default\Cache\Cache_Data"),
+            os.path.join(os.environ.get("LOCALAPPDATA"), r"Google\Chrome\User Data\Default\Code Cache\js"),
+            os.path.join(os.environ.get("LOCALAPPDATA"), r"Google\Chrome\User Data\Default\Code Cache\wasm"),
         ]
 
         total_deletados = 0
