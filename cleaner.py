@@ -2,7 +2,7 @@ import os
 import sys
 import shutil
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import threading
 import ctypes
 
@@ -51,6 +51,14 @@ def iniciar_limpeza():
         area_texto.delete("1.0", tk.END)
         area_texto.insert(tk.END, "⚠️  Selecione ao menos uma pasta para limpar.\n")
         area_texto.config(state="disabled")
+        return
+
+    confirmado = messagebox.askyesno(
+        title="Confirmação",
+        message=f"Você selecionou {len(selecionadas)} pasta(s) para limpar.\nEsta ação não pode ser desfeita.\n\nDeseja continuar?"
+    )
+
+    if not confirmado:
         return
 
     precisa_admin = any(admin for _, _, admin in selecionadas)
@@ -110,24 +118,22 @@ janela.resizable(False, False)
 titulo = tk.Label(janela, text="🧹 Cache Cleaner", font=("Helvetica", 16, "bold"))
 titulo.pack(pady=10)
 
-# Nota sobre administrador
 nota = tk.Label(janela, text="🔒 Pastas marcadas com [Admin] requerem permissão de administrador.",
                 font=("Helvetica", 8), fg="#e67e22")
 nota.pack()
 
-# Checkboxes
 frame_opcoes = tk.LabelFrame(janela, text="Selecione o que limpar", padx=10, pady=8)
 frame_opcoes.pack(padx=20, fill="x")
 
 opcoes_definidas = [
-    ("Temp do usuário",         os.environ.get("TEMP"),                                                                         False),
-    ("Temp do Windows",         r"C:\Windows\Temp",                                                                             False),
-    ("Cache do Chrome",         os.path.join(localappdata, r"Google\Chrome\User Data\Default\Cache\Cache_Data"),                False),
-    ("Code Cache JS",           os.path.join(localappdata, r"Google\Chrome\User Data\Default\Code Cache\js"),                   False),
-    ("Code Cache WASM",         os.path.join(localappdata, r"Google\Chrome\User Data\Default\Code Cache\wasm"),                 False),
-    ("Arquivos Recentes",       os.path.join(appdata, r"Microsoft\Windows\Recent"),                                             False),
-    ("Prefetch [Admin]",        r"C:\Windows\Prefetch",                                                                         True),
-    ("Windows Update [Admin]",  r"C:\Windows\SoftwareDistribution\Download",                                                    True),
+    ("Temp do usuário",        os.environ.get("TEMP"),                                                                       False),
+    ("Temp do Windows",        r"C:\Windows\Temp",                                                                           False),
+    ("Cache do Chrome",        os.path.join(localappdata, r"Google\Chrome\User Data\Default\Cache\Cache_Data"),              False),
+    ("Code Cache JS",          os.path.join(localappdata, r"Google\Chrome\User Data\Default\Code Cache\js"),                 False),
+    ("Code Cache WASM",        os.path.join(localappdata, r"Google\Chrome\User Data\Default\Code Cache\wasm"),               False),
+    ("Arquivos Recentes",      os.path.join(appdata, r"Microsoft\Windows\Recent"),                                           False),
+    ("Prefetch [Admin]",       r"C:\Windows\Prefetch",                                                                       True),
+    ("Windows Update [Admin]", r"C:\Windows\SoftwareDistribution\Download",                                                  True),
 ]
 
 opcoes = []
