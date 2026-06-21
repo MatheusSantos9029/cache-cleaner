@@ -102,8 +102,20 @@ def iniciar_limpeza():
         area_texto.config(state="disabled")
         botao.config(state="normal")
 
+        # Atualiza aba de resultado
+        atualizar_resultado(total_deletados, total_espaco)
+
     thread = threading.Thread(target=executar)
     thread.start()
+
+
+def atualizar_resultado(total_deletados, total_espaco):
+    from datetime import datetime
+    hora = datetime.now().strftime("%d/%m/%Y às %H:%M")
+
+    lbl_hora.config(text=f"🕐 Última limpeza: {hora}")
+    lbl_itens.config(text=f"🗑️  Itens removidos: {total_deletados}")
+    lbl_espaco.config(text=f"💾 Espaço liberado: {total_espaco / (1024*1024):.2f} MB")
 
 
 # Interface
@@ -122,8 +134,16 @@ nota = tk.Label(janela, text="🔒 Pastas marcadas com [Admin] requerem permiss�
                 font=("Helvetica", 8), fg="#e67e22")
 nota.pack()
 
-frame_opcoes = tk.LabelFrame(janela, text="Selecione o que limpar", padx=10, pady=8)
-frame_opcoes.pack(padx=20, fill="x")
+# Abas
+abas = ttk.Notebook(janela)
+abas.pack(fill="both", expand=True, padx=10, pady=5)
+
+# Aba 1 — Limpeza
+aba_limpeza = tk.Frame(abas)
+abas.add(aba_limpeza, text="🧹 Limpeza")
+
+frame_opcoes = tk.LabelFrame(aba_limpeza, text="Selecione o que limpar", padx=10, pady=8)
+frame_opcoes.pack(padx=10, pady=5, fill="x")
 
 opcoes_definidas = [
     ("Temp do usuário",        os.environ.get("TEMP"),                                                                       False),
@@ -154,15 +174,30 @@ btn_todos = tk.Button(frame_opcoes, text="Selecionar todos", command=selecionar_
                       font=("Helvetica", 9), bg="#3498db", fg="white", padx=8, pady=3)
 btn_todos.pack(anchor="w", pady=5)
 
-botao = tk.Button(janela, text="Limpar Cache", font=("Helvetica", 12),
+botao = tk.Button(aba_limpeza, text="Limpar Cache", font=("Helvetica", 12),
                   bg="#e74c3c", fg="white", padx=20, pady=8, command=iniciar_limpeza)
-botao.pack(pady=10)
+botao.pack(pady=8)
 
-barra = ttk.Progressbar(janela, length=440, mode="determinate")
+barra = ttk.Progressbar(aba_limpeza, length=440, mode="determinate")
 barra.pack(pady=5)
 
-area_texto = tk.Text(janela, height=10, width=60, font=("Courier", 9),
+area_texto = tk.Text(aba_limpeza, height=8, width=60, font=("Courier", 9),
                      state="disabled", bg="#1e1e1e", fg="#d4d4d4")
-area_texto.pack(padx=20, pady=5)
+area_texto.pack(padx=10, pady=5)
+
+# Aba 2 — Último Resultado
+aba_resultado = tk.Frame(abas)
+abas.add(aba_resultado, text="📊 Último Resultado")
+
+tk.Label(aba_resultado, text="Resumo da última limpeza", font=("Helvetica", 13, "bold")).pack(pady=30)
+
+lbl_hora = tk.Label(aba_resultado, text="🕐 Última limpeza: —", font=("Helvetica", 11))
+lbl_hora.pack(pady=8)
+
+lbl_itens = tk.Label(aba_resultado, text="🗑️  Itens removidos: —", font=("Helvetica", 11))
+lbl_itens.pack(pady=8)
+
+lbl_espaco = tk.Label(aba_resultado, text="💾 Espaço liberado: —", font=("Helvetica", 11))
+lbl_espaco.pack(pady=8)
 
 janela.mainloop()
