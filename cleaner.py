@@ -1,8 +1,21 @@
 import os
+import sys
 import shutil
 import tkinter as tk
 from tkinter import ttk
 import threading
+import ctypes
+
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+
+def pedir_admin():
+    ctypes.windll.shell32.ShellExecuteW(
+        None, "runas", sys.executable, " ".join(sys.argv), None, 1
+    )
 
 def limpar_pasta(caminho, log):
     deletados = 0
@@ -31,13 +44,22 @@ def limpar_pasta(caminho, log):
 
 
 def iniciar_limpeza():
-    selecionadas = [caminho for caminho, var in opcoes if var.get()]
+    selecionadas = [(label, caminho, admin) for label, caminho, admin, var in opcoes if var.get()]
 
     if not selecionadas:
         area_texto.config(state="normal")
         area_texto.delete("1.0", tk.END)
         area_texto.insert(tk.END, "⚠️  Selecione ao menos uma pasta para limpar.\n")
         area_texto.config(state="disabled")
+        return
+
+    precisa_admin = any(admin for _, _, admin in selecionadas)
+    if precisa_admin and not is_admin():
+        area_texto.config(state="normal")
+        area_texto.delete("1.0", tk.END)
+        area_texto.insert(tk.END, "🔒 Uma ou mais pastas selecionadas requerem permissão de administrador.\nReiniciando como administrador...\n")
+        area_texto.config(state="disabled")
+        janela.after(1500, pedir_admin)
         return
 
     botao.config(state="disabled")
@@ -55,8 +77,8 @@ def iniciar_limpeza():
 
         log("🧹 Iniciando limpeza...\n\n")
 
-        for i, pasta in enumerate(selecionadas):
-            log(f"📂 Limpando: {pasta}\n")
+        for i, (label, pasta, _) in enumerate(selecionadas):
+            log(f"📂 Limpando: {label}\n")
             deletados, espaco = limpar_pasta(pasta, log)
             total_deletados += deletados
             total_espaco += espaco
@@ -78,37 +100,47 @@ def iniciar_limpeza():
 
 # Interface
 localappdata = os.environ.get("LOCALAPPDATA") or os.path.expandvars("%LOCALAPPDATA%")
+appdata = os.environ.get("APPDATA") or os.path.expandvars("%APPDATA%")
 
 janela = tk.Tk()
 janela.title("Cache Cleaner")
-janela.geometry("500x540")
+janela.geometry("500x580")
 janela.resizable(False, False)
 
 titulo = tk.Label(janela, text="🧹 Cache Cleaner", font=("Helvetica", 16, "bold"))
 titulo.pack(pady=10)
+
+# Nota sobre administrador
+nota = tk.Label(janela, text="🔒 Pastas marcadas com [Admin] requerem permissão de administrador.",
+                font=("Helvetica", 8), fg="#e67e22")
+nota.pack()
 
 # Checkboxes
 frame_opcoes = tk.LabelFrame(janela, text="Selecione o que limpar", padx=10, pady=8)
 frame_opcoes.pack(padx=20, fill="x")
 
 opcoes_definidas = [
-    ("Temp do usuário", os.environ.get("TEMP")),
-    ("Temp do Windows", r"C:\Windows\Temp"),
-    ("Cache do Chrome", os.path.join(localappdata, r"Google\Chrome\User Data\Default\Cache\Cache_Data")),
-    ("Code Cache JS", os.path.join(localappdata, r"Google\Chrome\User Data\Default\Code Cache\js")),
-    ("Code Cache WASM", os.path.join(localappdata, r"Google\Chrome\User Data\Default\Code Cache\wasm")),
+    ("Temp do usuário",         os.environ.get("TEMP"),                                                                         False),
+    ("Temp do Windows",         r"C:\Windows\Temp",                                                                             False),
+    ("Cache do Chrome",         os.path.join(localappdata, r"Google\Chrome\User Data\Default\Cache\Cache_Data"),                False),
+    ("Code Cache JS",           os.path.join(localappdata, r"Google\Chrome\User Data\Default\Code Cache\js"),                   False),
+    ("Code Cache WASM",         os.path.join(localappdata, r"Google\Chrome\User Data\Default\Code Cache\wasm"),                 False),
+    ("Arquivos Recentes",       os.path.join(appdata, r"Microsoft\Windows\Recent"),                                             False),
+    ("Prefetch [Admin]",        r"C:\Windows\Prefetch",                                                                         True),
+    ("Windows Update [Admin]",  r"C:\Windows\SoftwareDistribution\Download",                                                    True),
 ]
 
 opcoes = []
-for label, caminho in opcoes_definidas:
-    var = tk.BooleanVar(value=False)  # nenhuma pré-selecionada
-    cb = tk.Checkbutton(frame_opcoes, text=label, variable=var, anchor="w")
+for label, caminho, admin in opcoes_definidas:
+    var = tk.BooleanVar(value=False)
+    cor = "#e74c3c" if admin else "black"
+    cb = tk.Checkbutton(frame_opcoes, text=label, variable=var, anchor="w", fg=cor)
     cb.pack(fill="x")
-    opcoes.append((caminho, var))
+    opcoes.append((label, caminho, admin, var))
 
 def selecionar_todos():
-    todos_marcados = all(var.get() for _, var in opcoes)
-    for _, var in opcoes:
+    todos_marcados = all(var.get() for _, _, _, var in opcoes)
+    for _, _, _, var in opcoes:
         var.set(not todos_marcados)
     btn_todos.config(text="Desmarcar todos" if not todos_marcados else "Selecionar todos")
 
@@ -123,7 +155,7 @@ botao.pack(pady=10)
 barra = ttk.Progressbar(janela, length=440, mode="determinate")
 barra.pack(pady=5)
 
-area_texto = tk.Text(janela, height=12, width=60, font=("Courier", 9),
+area_texto = tk.Text(janela, height=10, width=60, font=("Courier", 9),
                      state="disabled", bg="#1e1e1e", fg="#d4d4d4")
 area_texto.pack(padx=20, pady=5)
 
